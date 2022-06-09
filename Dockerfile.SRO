@@ -1,0 +1,19 @@
+ARG IMAGE=registry.access.redhat.com/ubi8/ubi
+
+FROM $IMAGE
+WORKDIR /build/
+
+RUN dnf install -y kernel-devel make elfutils-libelf-devel kmod rpm-build git
+
+# install dkms
+RUN git clone https://github.com/dell/dkms dkms && cd dkms && make install-redhat && cd ..
+
+# Grab intel GPU Out Of Tree Kernel Mode Drivers code,
+# package it as dpkms rpm pacages, install the rpm packages
+# which includes the code and dpkms, build the drivers in rpm
+# post install scripts with dkms. 
+RUN git clone https://github.com/intel-gpu/intel-gpu-pmt-backports.git && cd intel-gpu-pmt-backports && git switch rhel85 && BUILD_VERSION=1 make -f Makefile.dkms dkmsrpm-pkg && dnf install -y ~/rpmbuild/RPMS/x86_64/intel-platform-pmt-dkms*.rpm
+
+# Add the helper tools
+
+# RUN systemctl enable kmods-via-containers@intel-gpu-kmod
